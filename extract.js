@@ -95,42 +95,68 @@
     // for finding elements, extracting text, handling options, cleaning text,
     // displaying the modal, and placing the button doesn't need to change.
     // The key fix is within convertMathMLToLaTeX.)
-
-     function extractTextAndFormulas(node, processedNodes = new Set()) {
+    function extractTextAndFormulas(node, processedNodes = new Set()) {
         let text = '';
+        // Base case: Node is null or already processed
         if (!node || processedNodes.has(node)) return text;
-        
+
+        // *** ADDED VISIBILITY CHECK ***
+        // If it's an element node, check if it's hidden
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            const style = window.getComputedStyle(node);
+            // If the element is hidden, mark it as processed and return empty string
+            // This prevents extracting text from hidden elements AND their children
+            if (style.display === 'none' || style.visibility === 'hidden') {
+                processedNodes.add(node); // Add to prevent re-processing attempts if structure is weird
+                return '';
+            }
+        }
+        // **************************
+
+        // Mark the current node as processed
         processedNodes.add(node);
 
         if (node.nodeType === Node.TEXT_NODE) {
+            // Append text content directly
             text += node.textContent;
         } else if (node.nodeType === Node.ELEMENT_NODE) {
+            // Handle formula images specifically
             if (node.matches && node.matches(FORMULA_IMG_SELECTOR)) {
-                const formulaId = node.getAttribute('id') || node.getAttribute('data-mathml');
-                if (!processedNodes.has(formulaId)) {
-                    processedNodes.add(formulaId);
-                    
-                    const rawMathML = node.getAttribute('data-mathml');
-                    if (rawMathML) {
-                        const latexResult = convertMathMLToLaTeX(rawMathML);
-                        if (latexResult) {
-                            text += LATEX_INLINE_DELIMITER_START + latexResult + LATEX_INLINE_DELIMITER_END;
-                        }
+                const rawMathML = node.getAttribute('data-mathml');
+                if (rawMathML) {
+                    const latexResult = convertMathMLToLaTeX(rawMathML);
+                    if (latexResult) {
+                        // Ensure delimiters have no extra spaces unless intended
+                        text += LATEX_INLINE_DELIMITER_START.trim() + latexResult + LATEX_INLINE_DELIMITER_END.trim();
+                    } else {
+                         text += " [MathML Conv Error] "; // Placeholder if conversion fails
                     }
+                } else {
+                    text += " [No MathML Attr] "; // Placeholder if attribute missing
                 }
+                // Don't recurse into children of the image tag
             } else {
+                // For other elements, determine if they are block-level for spacing
                 const isBlock = ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'TR', 'DT', 'DD', 'BLOCKQUOTE', 'FIELDSET', 'LEGEND'].includes(node.tagName);
                 const isBr = node.tagName === 'BR';
 
+                // Recursively process child nodes
                 node.childNodes.forEach(child => {
-                    text += extractTextAndFormulas(child, processedNodes);
+                    text += extractTextAndFormulas(child, processedNodes); // Pass the same set down
                 });
 
-                if ((isBlock || isBr) && !/\n\s*$/.test(text)) {
-                    text += '\n';
+                // Add a newline after block elements or <br> tags if needed
+                // Ensures block elements roughly maintain separation
+                if ((isBlock || isBr) && !text.endsWith('\n')) {
+                   // Add a space before newline if text doesn't end with whitespace, then add newline
+                   if (!/\s$/.test(text)) {
+                       text += ' ';
+                   }
+                   text += '\n';
                 }
             }
         }
+        // Return the extracted text (cleanup happens later)
         return text;
     }
 
