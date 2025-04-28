@@ -1,41 +1,41 @@
 // ==UserScript==
-// @name         Moodle Quiz Extractor (LaTeX)
+// @name         Moodle Quiz Extractor (Questions + Options + LaTeX v1.3)
 // @namespace    http://tampermonkey.net/
-// @version      1.6
-// @description  Extracts Moodle quiz questions, options, converting formulas to LaTeX.
-// @author       civilix
+// @version      1.7
+// @description  Extracts Moodle quiz questions, options, converting formulas to LaTeX (using v1.3.0 library) for LLM input. Adds button near header.
+// @author       Civilix
 // @match        *://*/mod/quiz/attempt.php*
 // @match        *://wsdmoodle.waseda.jp/mod/quiz/attempt.php*
 // @match        *://wsdmoodle.waseda.jp/mod/quiz/processattempt.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=moodle.org
-// @require      https://cdn.jsdelivr.net/npm/mathml-to-latex@1.2.0/dist/bundle.min.js
+// @require      https://cdn.jsdelivr.net/npm/mathml-to-latex@1.3.0/dist/bundle.min.js
 // @grant        GM_addStyle
 // @grant        GM_setClipboard
 // @license      MIT
 // ==/UserScript==
 
-/* global MathMLToLaTeX */ // Inform JSHint/ESLint that MathMLToLaTeX is globally available via @require
+/* global MathMLToLaTeX */
 
 (function() {
     'use strict';
 
-    // --- Configuration ---
-    const BUTTON_TEXT = "問題を抽出 (LaTeX)"; // Updated button text
-    const MODAL_TITLE = "抽出された問題と選択肢 (LaTeX)"; // Updated modal title
+    // --- Configuration --- (Same as v1.6)
+    const BUTTON_TEXT = "問題を抽出 (LaTeX)";
+    const MODAL_TITLE = "抽出された問題と選択肢 (LaTeX)";
     const QUESTION_SELECTOR = "div.que";
     const QUESTION_NUMBER_SELECTOR = ".qno";
     const QUESTION_TEXT_CONTAINER_SELECTOR = ".qtext";
     const FORMULATION_SELECTOR = ".formulation";
     const ANSWER_BLOCK_SELECTOR = ".ablock .answer";
-    const OPTION_LABEL_SELECTOR = "div[data-region='answer-label'], .r0 > label, .r1 > label"; // Added label selector as fallback for options
+    const OPTION_LABEL_SELECTOR = "div[data-region='answer-label'], .r0 > label, .r1 > label";
     const FORMULA_IMG_SELECTOR = "img.Wirisformula";
     const TEXT_SEPARATOR = "\n\n---\n\n";
     const HEADER_ACTION_CONTAINER_SELECTOR = "div.header-actions-container[data-region='header-actions-container']";
     const OPTIONS_HEADER = "\n\n選択肢:";
-    const LATEX_INLINE_DELIMITER_START = " $"; // Start delimiter for LaTeX (with leading space)
-    const LATEX_INLINE_DELIMITER_END = "$ ";   // End delimiter for LaTeX (with trailing space)
+    const LATEX_INLINE_DELIMITER_START = " $";
+    const LATEX_INLINE_DELIMITER_END = "$ ";
 
-    // --- Styles --- (Same as v1.5)
+    // --- Styles --- (Same as v1.6)
     GM_addStyle(`
         #extract-questions-button { margin-left: 8px; padding: 5px 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; box-shadow: 1px 1px 3px rgba(0,0,0,0.1); display: inline-block; vertical-align: middle; }
         #extract-questions-button:hover { background-color: #0056b3; }
@@ -54,75 +54,82 @@
 
     // --- Functions ---
 
-    // No longer needed cleanMathML, library handles conversion
-    // function cleanMathML(mathmlString) { ... }
-
     /**
-     * Converts a MathML string to LaTeX using the loaded library.
+     * Converts a MathML string to LaTeX using the loaded library (v1.3.0).
+     * Uses the correct path MathMLToLaTeX.MathMLToLaTeX.convert().
      * @param {string} mathmlString - The raw MathML string from data-mathml.
      * @returns {string|null} - LaTeX string on success, null on failure.
      */
     function convertMathMLToLaTeX(mathmlString) {
-        if (!mathmlString || typeof MathMLToLaTeX === 'undefined') {
-            console.warn("MathML string missing or MathMLToLaTeX library not loaded.");
+        if (!mathmlString) {
+            console.warn("MathML string is empty.");
             return null;
         }
+         // Check if the main library object and the nested convert function exist
+        if (typeof MathMLToLaTeX === 'undefined' ||
+            typeof MathMLToLaTeX.MathMLToLaTeX === 'undefined' ||
+            typeof MathMLToLaTeX.MathMLToLaTeX.convert !== 'function') {
+            console.error("MathMLToLaTeX library or convert function not loaded/found correctly.");
+            // Try to alert the user only once if the library load failed fundamentally
+            if (!window.mathmlLibraryLoadFailed) {
+                 alert("エラー：数式変換ライブラリ（MathMLToLaTeX）の読み込みまたは初期化に失敗しました。");
+                 window.mathmlLibraryLoadFailed = true; // Prevent repeated alerts
+            }
+            return null;
+        }
+
         try {
-            // The library might expose the function differently, adjust if needed
-            // Common patterns: MathMLToLaTeX.convert() or simply mathmlToLatex()
-            // Based on the bundle structure, it likely exposes MathMLToLaTeX global object
-            let latex = MathMLToLaTeX.convert(mathmlString);
-            // Basic cleanup, remove potential unnecessary {} wrappers if library adds them
-             latex = latex.replace(/^{([^}]*)}$/, '$1');
-            return latex.trim(); // Trim whitespace from LaTeX result
+            // *** Use the correct path based on the example ***
+            let latex = MathMLToLaTeX.MathMLToLaTeX.convert(mathmlString);
+            latex = latex.replace(/^{([^}]*)}$/, '$1'); // Basic cleanup
+            return latex.trim();
         } catch (error) {
             console.error("Error converting MathML to LaTeX:", error, "\nMathML:", mathmlString);
-            return null; // Indicate failure
+            return null;
         }
     }
 
-    /**
-     * Extracts text, converting formulas to LaTeX using MathML data.
-     */
-    function extractTextAndFormulas(node) {
+    // --- extractTextAndFormulas, cleanupExtractedText, getAllQuestionTexts ---
+    // --- showModal, createExtractionButton, init functions ---
+    // (These functions remain the same as in version 1.6, as the core logic
+    // for finding elements, extracting text, handling options, cleaning text,
+    // displaying the modal, and placing the button doesn't need to change.
+    // The key fix is within convertMathMLToLaTeX.)
+
+     function extractTextAndFormulas(node) {
         let text = '';
         if (!node) return text;
 
         if (node.nodeType === Node.TEXT_NODE) {
-            let content = node.textContent;
-            text += content;
-            // Add space if needed for separation (will be cleaned later)
-            // if (content.trim() && !/\s$/.test(content)) {
-            //     text += ' ';
-            // }
+            text += node.textContent;
         } else if (node.nodeType === Node.ELEMENT_NODE) {
-            // Handle formula images
             if (node.matches && node.matches(FORMULA_IMG_SELECTOR)) {
                 const rawMathML = node.getAttribute('data-mathml');
                 const altText = node.getAttribute('alt');
                 let formulaOutput = '';
 
                 if (rawMathML) {
-                    const latexResult = convertMathMLToLaTeX(rawMathML);
+                    // **********************************************************
+                    // Ensure the correct cleaning function is called here if needed
+                    // The library might handle the non-standard chars now, test this
+                    // const cleanedMathML = cleanMathMLForLibrary(rawMathML); // Might not be needed anymore
+                    const latexResult = convertMathMLToLaTeX(rawMathML); // Call the fixed conversion function
+                    // **********************************************************
+
                     if (latexResult) {
-                        // Successfully converted to LaTeX
                         formulaOutput = LATEX_INLINE_DELIMITER_START + latexResult + LATEX_INLINE_DELIMITER_END;
                     } else {
-                        // Conversion failed, use alt text as fallback
                         formulaOutput = ` [Formula Alt Text: ${altText || 'N/A'}] `;
-                         console.warn("MathML to LaTeX conversion failed, using Alt text for:", rawMathML);
+                        console.warn("MathML to LaTeX conversion failed, using Alt text for:", rawMathML);
                     }
                 } else if (altText) {
-                    // No MathML, use alt text
                     formulaOutput = ` [Formula Alt Text: ${altText}] `;
                 } else {
-                    // Nothing available
                     formulaOutput = ' [Formula Image - No Data] ';
                 }
                 text += formulaOutput;
 
             } else {
-                // Recursively process other elements
                 const isBlock = ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'TR', 'DT', 'DD', 'BLOCKQUOTE', 'FIELDSET', 'LEGEND'].includes(node.tagName);
                 const isBr = node.tagName === 'BR';
 
@@ -130,7 +137,6 @@
                     text += extractTextAndFormulas(child);
                 });
 
-                 // Add newline AFTER block element or BR for structure (will be cleaned later)
                  if ((isBlock || isBr) && !/\n\s*$/.test(text)) {
                      text += '\n';
                  }
@@ -139,38 +145,29 @@
         return text;
     }
 
-    /**
-     * Cleans up extracted text: normalizes whitespace, trims.
-     */
      function cleanupExtractedText(rawText) {
         if (!rawText) return '';
-        // More aggressive whitespace cleanup BETWEEN words/formulas, but keep structure newlines
         let cleaned = rawText
-            .replace(/(\$\s*)/g, '$') // Remove space after $ start delimiter
-            .replace(/(\s*\$)/g, '$') // Remove space before $ end delimiter
-            .replace(/\s+/g, ' ')          // Consolidate mid-text whitespace
-            .replace(/ \n/g, '\n')         // Remove space before newline
-            .replace(/\n /g, '\n')         // Remove space after newline
-            .replace(/\n{3,}/g, '\n\n')    // Reduce multiple newlines to max 2
+            .replace(/(\$\s*)/g, '$')
+            .replace(/(\s*\$)/g, '$')
+            .replace(/\s+/g, ' ')
+            .replace(/ \n/g, '\n')
+            .replace(/\n /g, '\n')
+            .replace(/\n{3,}/g, '\n\n')
             .trim();
         return cleaned;
      }
 
-
-    /**
-     * Finds all questions, extracts text and options, then formats.
-     */
     function getAllQuestionTexts() {
         const questionElements = document.querySelectorAll(QUESTION_SELECTOR);
         let allTexts = [];
 
-        if (typeof MathMLToLaTeX === 'undefined') {
-             console.error("MathMLToLaTeX library not loaded. Cannot convert formulas.");
-             alert("Error: Formula conversion library (MathMLToLaTeX) failed to load. Check browser console.");
-             // Optional: proceed without conversion?
-             // return "Error: MathMLToLaTeX library failed to load.";
-        }
-
+        // Check library status at the beginning of extraction attempt
+         if (typeof MathMLToLaTeX === 'undefined' || typeof MathMLToLaTeX.MathMLToLaTeX === 'undefined' || typeof MathMLToLaTeX.MathMLToLaTeX.convert !== 'function') {
+             console.error("MathMLToLaTeX library not ready. Aborting extraction.");
+             // Alert is handled inside convertMathMLToLaTeX if it fails per-formula
+             return "エラー：数式変換ライブラリが利用できません。"; // Return error message
+         }
 
         questionElements.forEach((qElement, index) => {
             const questionInfoEl = qElement.querySelector('.info .no');
@@ -180,40 +177,34 @@
             const qNumberText = qElement.querySelector('.qno')?.textContent?.trim() ?? `${index + 1}`;
             const questionTitle = questionInfoEl ? cleanupExtractedText(questionInfoEl.textContent) : `問題 ${qNumberText}`;
 
-            // Extract Main Question Text
             let mainQuestionText = '';
             let questionTextElement = textContainerEl || formulationEl;
             if (questionTextElement) {
-                let rawText = extractTextAndFormulas(questionTextElement); // Use the new extraction function
+                let rawText = extractTextAndFormulas(questionTextElement);
                 mainQuestionText = cleanupExtractedText(rawText);
             } else {
                  const contentEl = qElement.querySelector('.content');
                  if(contentEl) {
-                     // Try extracting from '.content' if '.qtext' or '.formulation' are missing
                      let rawText = extractTextAndFormulas(contentEl);
                      mainQuestionText = cleanupExtractedText(rawText);
                  } else {
                      mainQuestionText = "[問題テキストが見つかりません]";
                  }
             }
-             // Remove redundant title if extracted within the text element
             if (mainQuestionText.startsWith(questionTitle)) {
                  mainQuestionText = mainQuestionText.substring(questionTitle.length).trim();
             }
 
-            // Extract Options
             let optionsOutputText = '';
             const answerElement = qElement.querySelector(ANSWER_BLOCK_SELECTOR);
             if (answerElement) {
-                // Use the combined selector for option labels
                 const optionLabelElements = answerElement.querySelectorAll(OPTION_LABEL_SELECTOR);
                 if (optionLabelElements.length > 0) {
                     let extractedOptions = [];
                     optionLabelElements.forEach(labelEl => {
-                        let rawOptionText = extractTextAndFormulas(labelEl); // Extract option text with formulas
+                        let rawOptionText = extractTextAndFormulas(labelEl);
                         let cleanedOptionText = cleanupExtractedText(rawOptionText);
                         if (cleanedOptionText) {
-                             // Prefix with a list marker (e.g., "- ")
                             extractedOptions.push(`- ${cleanedOptionText}`);
                         }
                     });
@@ -221,18 +212,8 @@
                          optionsOutputText = OPTIONS_HEADER + "\n" + extractedOptions.join("\n");
                     }
                 }
-                 else {
-                     // If no option labels found, check if the answer block itself contains text (e.g., for fill-in-the-blanks help text)
-                     let answerBlockText = cleanupExtractedText(extractTextAndFormulas(answerElement));
-                     // Avoid adding just input field related noise
-                     if (answerBlockText && !answerBlockText.toLowerCase().includes('answer:')) {
-                        // Maybe add context? Like "Answer Area Text:"
-                        // optionsOutputText = "\n\n回答欄情報:\n" + answerBlockText;
-                     }
-                 }
             }
 
-            // Combine Title, Main Text, and Options
             let fullQuestionText = `${questionTitle}:\n${mainQuestionText}${optionsOutputText}`;
             allTexts.push(fullQuestionText);
         });
@@ -240,17 +221,13 @@
         return allTexts.join(TEXT_SEPARATOR);
     }
 
-
-    // --- showModal, createExtractionButton, init functions (mostly unchanged) ---
-
     function showModal(text) {
-        // ... (Modal creation code as in v1.5, uses MODAL_TITLE) ...
-         const existingModal = document.getElementById('extract-modal-overlay');
+        const existingModal = document.getElementById('extract-modal-overlay');
         if (existingModal) existingModal.remove();
 
         const overlay = document.createElement('div'); overlay.id = 'extract-modal-overlay';
         const modalContent = document.createElement('div'); modalContent.id = 'extract-modal-content';
-        const title = document.createElement('h2'); title.textContent = MODAL_TITLE; // Use updated title
+        const title = document.createElement('h2'); title.textContent = MODAL_TITLE;
         const textArea = document.createElement('textarea'); textArea.id = 'extract-modal-textarea'; textArea.value = text; textArea.readOnly = true;
         const buttonContainer = document.createElement('div'); buttonContainer.id = 'extract-modal-buttons';
         const copyButton = document.createElement('button'); copyButton.id = 'extract-copy-button'; copyButton.textContent = 'コピー';
@@ -271,32 +248,31 @@
 
         const button = document.createElement('button');
         button.id = 'extract-questions-button';
-        button.textContent = BUTTON_TEXT; // Use updated text
+        button.textContent = BUTTON_TEXT;
         button.type = 'button';
         button.onclick = () => {
-            console.log("Extracting questions and options (LaTeX priority)...");
-             // Check if library loaded before attempting extraction
-            if (typeof MathMLToLaTeX === 'undefined') {
-                 alert("エラー：数式変換ライブラリ（MathMLToLaTeX）の読み込みに失敗しました。");
-                 console.error("MathMLToLaTeX library is not defined. Aborting extraction.");
-                 return; // Stop the process
-             }
+            console.log("Extracting questions and options (LaTeX v1.3.0 priority)...");
+            // Library check is now also inside getAllQuestionTexts / convertMathMLToLaTeX
             try {
                 const extractedText = getAllQuestionTexts();
-                console.log(`Extraction complete. Text length: ${extractedText.length}`);
-                // console.log("Sample Text:\n", extractedText.substring(0, 500)); // Log beginning of text for debugging
-                showModal(extractedText);
+                if (extractedText.startsWith("エラー：")) { // Check if extraction aborted due to library issue
+                    console.error("Extraction aborted:", extractedText);
+                    // Optionally show the error in the modal or alert again
+                    // showModal(extractedText);
+                } else {
+                    console.log(`Extraction complete. Text length: ${extractedText.length}`);
+                    showModal(extractedText);
+                }
             } catch (error) {
-                console.error("Moodle Extractor: Error during extraction:", error);
-                alert("問題と選択肢の抽出中にエラーが発生しました。コンソールを確認してください。");
+                console.error("Moodle Extractor: Error during extraction process:", error);
+                alert("問題と選択肢の抽出中に予期せぬエラーが発生しました。コンソールを確認してください。");
             }
         };
 
-        // ... (Button placement logic remains the same) ...
-         const targetContainer = document.querySelector(HEADER_ACTION_CONTAINER_SELECTOR);
+        const targetContainer = document.querySelector(HEADER_ACTION_CONTAINER_SELECTOR);
         if (targetContainer) {
             targetContainer.appendChild(button);
-            console.log("Moodle Extractor (LaTeX+Options) button added to header.");
+            console.log("Moodle Extractor (LaTeX v1.3+Options) button added to header.");
         } else {
             console.warn("Moodle Extractor: Header container not found. Using fallback button.");
             button.classList.add('extract-questions-button-fallback');
@@ -304,10 +280,13 @@
         }
     }
 
-    function init() {
-        // Wait a bit for elements and potentially the @require script to load fully
-        setTimeout(createExtractionButton, 700); // Increased delay slightly
+     function init() {
+         // Increased delay to allow more time for @require script loading potentially
+        setTimeout(createExtractionButton, 1000); // 1 second delay
     }
+
+    // Add a flag to prevent repeated library load failure alerts
+    window.mathmlLibraryLoadFailed = false;
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
