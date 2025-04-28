@@ -96,50 +96,39 @@
     // displaying the modal, and placing the button doesn't need to change.
     // The key fix is within convertMathMLToLaTeX.)
 
-     function extractTextAndFormulas(node) {
+     function extractTextAndFormulas(node, processedNodes = new Set()) {
         let text = '';
-        if (!node) return text;
+        if (!node || processedNodes.has(node)) return text;
+        
+        processedNodes.add(node);
 
         if (node.nodeType === Node.TEXT_NODE) {
             text += node.textContent;
         } else if (node.nodeType === Node.ELEMENT_NODE) {
             if (node.matches && node.matches(FORMULA_IMG_SELECTOR)) {
-                const rawMathML = node.getAttribute('data-mathml');
-                const altText = node.getAttribute('alt');
-                let formulaOutput = '';
-
-                if (rawMathML) {
-                    // **********************************************************
-                    // Ensure the correct cleaning function is called here if needed
-                    // The library might handle the non-standard chars now, test this
-                    // const cleanedMathML = cleanMathMLForLibrary(rawMathML); // Might not be needed anymore
-                    const latexResult = convertMathMLToLaTeX(rawMathML); // Call the fixed conversion function
-                    // **********************************************************
-
-                    if (latexResult) {
-                        formulaOutput = LATEX_INLINE_DELIMITER_START + latexResult + LATEX_INLINE_DELIMITER_END;
-                    } else {
-                        formulaOutput = ` [Formula Alt Text: ${altText || 'N/A'}] `;
-                        console.warn("MathML to LaTeX conversion failed, using Alt text for:", rawMathML);
+                const formulaId = node.getAttribute('id') || node.getAttribute('data-mathml');
+                if (!processedNodes.has(formulaId)) {
+                    processedNodes.add(formulaId);
+                    
+                    const rawMathML = node.getAttribute('data-mathml');
+                    if (rawMathML) {
+                        const latexResult = convertMathMLToLaTeX(rawMathML);
+                        if (latexResult) {
+                            text += LATEX_INLINE_DELIMITER_START + latexResult + LATEX_INLINE_DELIMITER_END;
+                        }
                     }
-                } else if (altText) {
-                    formulaOutput = ` [Formula Alt Text: ${altText}] `;
-                } else {
-                    formulaOutput = ' [Formula Image - No Data] ';
                 }
-                text += formulaOutput;
-
             } else {
                 const isBlock = ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'TR', 'DT', 'DD', 'BLOCKQUOTE', 'FIELDSET', 'LEGEND'].includes(node.tagName);
                 const isBr = node.tagName === 'BR';
 
                 node.childNodes.forEach(child => {
-                    text += extractTextAndFormulas(child);
+                    text += extractTextAndFormulas(child, processedNodes);
                 });
 
-                 if ((isBlock || isBr) && !/\n\s*$/.test(text)) {
-                     text += '\n';
-                 }
+                if ((isBlock || isBr) && !/\n\s*$/.test(text)) {
+                    text += '\n';
+                }
             }
         }
         return text;
