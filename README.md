@@ -15,3 +15,11 @@ This Tampermonkey userscript extracts question text and options from Moodle quiz
 *   **学術的誠実性:** 実施中のクイズや試験中、または所学術的誠実性に関する方針に違反する方法でこのスクリプトまたはその出力を使用することは、**不正行為**にあたります。
 *   **著作権:** 抽出されたコンテンツは著作権によって保護されている可能性が高いです。抽出されたコンテンツの使用が、利用者の管轄区域で適用される著作権法およびフェアユースの原則に準拠していることを確認する責任は、**利用者にのみ**あります。著作権で保護された素材の無断での配布、複製、共有は禁止されており、違法です。
 *   **免責:** 作者は、このスクリプトの誤用（学術的不正行為や著作権侵害を含みますが、これらに限定されません）、またはその出力の使用から生じる**いかなる責任も一切負いません**。このスクリプトは**完全に自己責任**で使用し、ご自身の行動が倫理的かつ合法的であり、適用されるすべての規則や規制を遵守していることを確認してください。
+
+## Installation 
+
+1. Install [Tampermonkey BETA](https://chromewebstore.google.com/detail/tampermonkey-beta/gcalenpjmijncebpfijmoaglllgpjagf) extension.
+<!-- install from url -->
+2. Click the Tampermonkey icon in your browser's toolbar and select dashboard - utilities - install from URL.
+3. Paste the following URL into the input field and click "Install":
+```https://raw.githubusercontent.com/civilix/wsdmoodle-solver/refs/heads/main/extract.js```
