@@ -1,6 +1,6 @@
 ## Description
 
-This Tampermonkey userscript extracts question text and options (including formulas converted to LaTeX) from Moodle quiz pages. It is intended **strictly for personal note-taking and review purposes** *after* you have legitimately completed the quiz or for studying purposes where permitted.
+This Tampermonkey userscript extracts question text and options from Moodle quiz pages. It is intended **strictly for personal note-taking and review purposes** *after* you have legitimately completed the quiz or for studying purposes where permitted.
 
 ## Important Disclaimers
 
