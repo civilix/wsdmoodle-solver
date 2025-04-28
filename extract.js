@@ -1,13 +1,14 @@
 // ==UserScript==
-// @name         Moodle Extractor for LLM
+// @name         Moodle Quiz Extractor (LaTeX)
 // @namespace    http://tampermonkey.net/
 // @version      1.6
-// @description  Extracts all question text (including formula alt text) from Moodle.
+// @description  Extracts Moodle quiz questions, options, converting formulas to LaTeX.
 // @author       civilix
 // @match        *://*/mod/quiz/attempt.php*
 // @match        *://wsdmoodle.waseda.jp/mod/quiz/attempt.php*
 // @match        *://wsdmoodle.waseda.jp/mod/quiz/processattempt.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=moodle.org
+// @require      https://cdn.jsdelivr.net/npm/mathml-to-latex@1.2.0/dist/bundle.min.js
 // @grant        GM_addStyle
 // @grant        GM_setClipboard
 // @license      MIT
