@@ -5,8 +5,10 @@
 // @description  Extracts question text from Moodle, converting MathML formulas to LaTeX.
 // @author       civilix
 // @match        *://*/mod/quiz/attempt.php*
+// @match        *://*/mod/quiz/review.php*
 // @match        *://*/mod/quiz/processattempt.php*
 // @match        *://wsdmoodle.waseda.jp/mod/quiz/attempt.php*
+// @match        *://wsdmoodle.waseda.jp/mod/quiz/review.php*
 // @match        *://wsdmoodle.waseda.jp/mod/quiz/processattempt.php*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=moodle.org
 // @require      https://cdn.jsdelivr.net/npm/mathml-to-latex@1.3.0/dist/bundle.min.js
