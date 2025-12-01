@@ -116,6 +116,45 @@
         if (node.nodeType === Node.TEXT_NODE) {
             text += node.textContent; // Append text content directly
         } else if (node.nodeType === Node.ELEMENT_NODE) {
+            // --- MathJax Handling (Prevents Duplication) ---
+            // 1. Ignore invisible/preview/assistive MathJax elements
+            if (node.classList.contains('MathJax_Preview') ||
+                node.classList.contains('MJX_Assistive_MathML')) {
+                return '';
+            }
+
+            // 2. Handle MathJax Script Tags (The Source LaTeX)
+            if (node.tagName === 'SCRIPT' && node.type && node.type.indexOf('math/tex') !== -1) {
+                let latex = node.textContent;
+                // Wrap in delimiters (user requested LaTeX)
+                return ` ${LATEX_DELIMITER}${latex}${LATEX_DELIMITER} `;
+            }
+
+            // 3. Handle MathJax Visual Frame (The Rendered HTML)
+            if (node.classList.contains('MathJax')) {
+                const id = node.getAttribute('id');
+                // Check if a corresponding script tag exists (e.g. MathJax-Element-2-Frame -> MathJax-Element-2)
+                if (id && id.endsWith('-Frame')) {
+                    const scriptId = id.substring(0, id.length - 6); // remove '-Frame'
+                    const scriptEl = document.getElementById(scriptId);
+                    // If the source script exists, we skip this visual element to avoid duplication
+                    if (scriptEl && scriptEl.tagName === 'SCRIPT' && scriptEl.type && scriptEl.type.indexOf('math/tex') !== -1) {
+                        return '';
+                    }
+                }
+
+                // Fallback: If no script found, try to use data-mathml from the frame itself
+                const rawMathML = node.getAttribute('data-mathml');
+                if (rawMathML) {
+                    const cleanedMathML = cleanMathML(rawMathML);
+                    const latex = convertMathMLToLaTeX(cleanedMathML);
+                    if (latex && !latex.startsWith('[Conversion Error:') && !latex.startsWith('[MathMLToLaTeX Library Error]')) {
+                         return ` ${LATEX_DELIMITER}${latex}${LATEX_DELIMITER} `;
+                    }
+                }
+            }
+            // -----------------------------------------------
+
             if (node.matches && node.matches(FORMULA_IMG_SELECTOR)) {
                 const rawMathML = node.getAttribute('data-mathml');
                 const cleanedMathML = cleanMathML(rawMathML);
