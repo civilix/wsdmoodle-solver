@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Moodle Extractor for LLM (LaTeX Output)
 // @namespace    http://tampermonkey.net/
-// @version      1.7
+// @version      1.8
 // @description  Extracts question text from Moodle, converting MathML formulas to LaTeX.
 // @author       civilix
 // @match        *://*/mod/quiz/attempt.php*
@@ -21,8 +21,8 @@
     'use strict';
 
     // --- Configuration ---
-    const BUTTON_TEXT = "問題と選択肢を抽出 (LaTeX)"; // Updated button text
-    const MODAL_TITLE = "抽出された問題と選択肢 (LaTeX)"; // Updated modal title
+    const BUTTON_TEXT = "問題と選択肢を抽出 (JSONL)"; // Updated button text
+    const MODAL_TITLE = "抽出された問題と選択肢 (JSONL)"; // Updated modal title
     const QUESTION_SELECTOR = "div.que"; // Main container for each question
     const QUESTION_NUMBER_SELECTOR = ".qno"; // Question number within '.info .no' usually
     const QUESTION_TEXT_CONTAINER_SELECTOR = ".qtext"; // Main question text container
@@ -30,7 +30,7 @@
     const ANSWER_BLOCK_SELECTOR = ".ablock .answer"; // Container for answer options/inputs
     const OPTION_LABEL_SELECTOR = "div[data-region='answer-label']"; // Selector for the div containing the text of an option
     const FORMULA_IMG_SELECTOR = "img.Wirisformula[data-mathml]"; // Formula image selector (must have data-mathml)
-    const TEXT_SEPARATOR = "\n\n---\n\n";
+    const TEXT_SEPARATOR = "\n";
     const HEADER_ACTION_CONTAINER_SELECTOR = "div.header-actions-container[data-region='header-actions-container']";
     const OPTIONS_HEADER = "\n\n選択肢:"; // Header text before listing options
     const LATEX_DELIMITER = '$'; // Use '$...$' for inline LaTeX
@@ -267,29 +267,29 @@
 
 
             // Extract Options
-            let optionsOutputText = '';
+            let options = [];
             const answerElement = qElement.querySelector(ANSWER_BLOCK_SELECTOR);
             if (answerElement) {
                 const optionLabelElements = answerElement.querySelectorAll(OPTION_LABEL_SELECTOR);
                 if (optionLabelElements.length > 0) {
-                    let extractedOptions = [];
                     optionLabelElements.forEach(labelEl => {
                         let rawOptionText = extractTextWithFormulas(labelEl);
                         let cleanedOptionText = cleanupExtractedText(rawOptionText);
                         if (cleanedOptionText) {
-                            extractedOptions.push(`- ${cleanedOptionText}`); // Prefix with "- "
+                            options.push(cleanedOptionText);
                         }
                     });
-                    if (extractedOptions.length > 0) {
-                         optionsOutputText = OPTIONS_HEADER + "\n" + extractedOptions.join("\n");
-                    }
                 }
             }
 
-            // Combine Title, Main Text, and Options
-            // Ensure there's a newline between title and text if text isn't empty
-            let fullQuestionText = questionTitle + (mainQuestionText ? `\n${mainQuestionText}` : '') + optionsOutputText;
-            allTexts.push(fullQuestionText);
+            // Construct JSON object
+            const questionObj = {
+                question_number: qNumber,
+                title: questionTitle,
+                text: mainQuestionText,
+                options: options
+            };
+            allTexts.push(JSON.stringify(questionObj));
         });
 
         // Join all questions with separator
