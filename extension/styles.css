@@ -1,0 +1,88 @@
+#mqe-button {
+  margin-left: 8px;
+  padding: 5px 10px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+  display: inline-block;
+  vertical-align: middle;
+}
+#mqe-button:hover { background-color: #0056b3; }
+.mqe-button-fallback {
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  z-index: 9999 !important;
+  padding: 10px 15px !important;
+  font-size: 14px !important;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2) !important;
+}
+#mqe-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 10000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+#mqe-modal {
+  background-color: #fff;
+  padding: 25px;
+  border-radius: 8px;
+  width: 80%;
+  max-width: 720px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+#mqe-modal h2 { margin: 0 0 15px; font-size: 1.4em; color: #333; }
+#mqe-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 15px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  padding: 10px;
+  resize: vertical;
+  flex-grow: 1;
+  min-height: 300px;
+}
+#mqe-buttons { text-align: right; flex-shrink: 0; }
+#mqe-buttons button {
+  padding: 8px 12px;
+  margin-left: 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.mqe-btn-copy { background-color: #28a745; color: #fff; }
+.mqe-btn-copy:hover { background-color: #218838; }
+.mqe-btn-pdf { background-color: #d9534f; color: #fff; }
+.mqe-btn-pdf:hover { background-color: #c9302c; }
+.mqe-btn-fill { background-color: #0d6efd; color: #fff; }
+.mqe-btn-fill:hover { background-color: #0b5ed7; }
+.mqe-btn-close { background-color: #6c757d; color: #fff; }
+.mqe-btn-close:hover { background-color: #5a6268; }
+#mqe-hint {
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+#mqe-status {
+  font-size: 12px;
+  margin-bottom: 8px;
+  min-height: 1em;
+  white-space: pre-wrap;
+}
+.mqe-status-ok { color: #218838; }
+.mqe-status-warn { color: #b8860b; }
+.mqe-status-err { color: #c9302c; }

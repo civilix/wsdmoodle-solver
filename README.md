@@ -1,25 +1,43 @@
-## Description
+# Moodle Quiz Extractor (Chrome Extension)
 
-This Tampermonkey userscript extracts question text and options from Moodle quiz pages. It is intended **strictly for personal note-taking and review purposes** *after* you have legitimately completed the quiz or for studying purposes where permitted.
-
-## Important Disclaimers
-
-*   **Intended Use:** This script is provided **solely** for the purpose of extracting quiz content for **personal note-taking and review** after completing the quiz legitimately. It is NOT intended for use during active assessments unless explicitly permitted.
-*   **Academic Integrity:** Using this script or its output during an active quiz, exam, or in any way that violates your institution's academic integrity policies constitutes **academic misconduct**. The author strongly condemns such usage and provides this tool for legitimate study purposes only.
-*   **Copyright:** The content extracted from Moodle (questions, options, images, formulas) is likely protected by copyright owned by the course instructor, institution, or publisher. You are solely responsible for ensuring your use of the extracted content complies with copyright law and fair use principles applicable in your jurisdiction. Unauthorized distribution, reproduction, or sharing of copyrighted material is prohibited and illegal.
-*   **No Liability:** The author assumes **no responsibility or liability whatsoever** for any misuse of this script, including but not limited to academic dishonesty or copyright infringement resulting from its use or the use of its output. Use this script **entirely at your own risk** and ensure your actions are ethical, legal, and comply with all applicable rules and regulations.
+Moodle のクイズ問題と選択肢を、数式を LaTeX に変換したテキストとして抽出する Chrome 拡張機能です。抽出結果のコピー、印刷用 PDF の生成、および所定形式の回答をページ上の解答欄へ入力できます。
 
 ## 重要事項・免責事項
 
-*   **意図された用途:** このスクリプトは、クイズを正規に完了した後の、**個人的なノート作成および復習**の目的のために**のみ**提供されています。明示的に許可されていない限り、実施中の評価での使用は意図されていません。
-*   **学術的誠実性:** 実施中のクイズや試験中、または所学術的誠実性に関する方針に違反する方法でこのスクリプトまたはその出力を使用することは、**不正行為**にあたります。
-*   **著作権:** 抽出されたコンテンツは著作権によって保護されている可能性が高いです。抽出されたコンテンツの使用が、利用者の管轄区域で適用される著作権法およびフェアユースの原則に準拠していることを確認する責任は、**利用者にのみ**あります。著作権で保護された素材の無断での配布、複製、共有は禁止されており、違法です。
-*   **免責:** 作者は、このスクリプトの誤用（学術的不正行為や著作権侵害を含みますが、これらに限定されません）、またはその出力の使用から生じる**いかなる責任も一切負いません**。このスクリプトは**完全に自己責任**で使用し、ご自身の行動が倫理的かつ合法的であり、適用されるすべての規則や規制を遵守していることを確認してください。
+- **意図された用途:** 正規に完了したクイズの個人的なノート作成や復習、または明示的に許可された学習活動のためにのみ使用してください。
+- **学術的誠実性:** 実施中のクイズや試験など、所属機関の規則に反する状況で本拡張機能やその出力を使用すると、不正行為に当たる可能性があります。
+- **著作権:** Moodle から抽出される問題、選択肢、画像、数式などは著作権で保護されている場合があります。無断で配布、複製、共有しないでください。
+- **自己責任:** 本拡張機能の利用と、その出力の取り扱いは利用者自身の責任で行ってください。
 
-## Installation 
+## インストール
 
-1. Install [Tampermonkey BETA](https://chromewebstore.google.com/detail/tampermonkey-beta/gcalenpjmijncebpfijmoaglllgpjagf) extension.
-<!-- install from url -->
-2. Click the Tampermonkey icon in your browser's toolbar and select dashboard - utilities - install from URL.
-3. Paste the following URL into the input field and click "Install":
-```https://raw.githubusercontent.com/civilix/wsdmoodle-solver/refs/heads/main/extract.js```
+1. このリポジトリをダウンロードまたは clone します。
+2. Chrome で `chrome://extensions` を開きます。
+3. 右上の「デベロッパーモード」を有効にします。
+4. 「パッケージ化されていない拡張機能を読み込む」を選び、`extension/` フォルダを指定します。
+
+## 対応ページ
+
+- `*://*/mod/quiz/attempt.php*`
+- `*://*/mod/quiz/review.php*`
+- `*://*/mod/quiz/processattempt.php*`
+
+Waseda Moodle を含む Moodle サイトで動作します。
+
+## 使い方
+
+対象ページを開くと、ヘッダー右側（見つからない場合は画面右下）に「問題を抽出」ボタンが表示されます。ボタンを押すと、次の操作ができます。
+
+- **テキストをコピー:** 数式を `$...$` 形式の LaTeX に変換した問題文をクリップボードへコピーします。
+- **PDF として保存:** MathJax で組版した印刷ビューを開きます。印刷ダイアログから PDF として保存できます。
+- **解答を入力:** `[[番号]] = 値` 形式の回答をテキスト欄へ貼り付け、対応する入力欄、選択肢、チェックボックスへ反映します。反映後は送信前に必ず内容を確認してください。
+
+## ファイル構成
+
+- `extension/manifest.json` — Manifest V3 設定
+- `extension/content.js` — 抽出、表示、PDF、解答入力処理
+- `extension/styles.css` — ボタンとモーダルのスタイル
+- `extension/lib/mathml-to-latex.min.js` — MathML から LaTeX への変換ライブラリ
+- `extension/THIRD_PARTY_NOTICES.md` — バンドルした第三者ソフトウェアの表示とライセンス
+
+拡張機能はクリップボードへの書き込み権限を使用します。Moodle の保存ページや抽出した問題データはリポジトリへ追加しないでください。
