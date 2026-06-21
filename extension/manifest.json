@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Moodle Quiz Extractor (LaTeX / PDF)",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Extract Moodle quiz questions (with math formulas) as plain-text LaTeX or printable PDF for feeding into LLMs.",
   "content_scripts": [
     {

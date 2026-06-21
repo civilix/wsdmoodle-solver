@@ -22,7 +22,8 @@
     "重要: 値は入力欄にそのまま入る **プレーンな数値 / 短い文字列** のみ。\n" +
     "  - `$`, `\\(...\\)`, `\\[...\\]` などの LaTeX 区切りで絶対に囲まない。\n" +
     "  - `\\frac{1}{2}` のようなコマンドを使わない。許容される形式の例: `0.5`, `1/2`, `-1/2`, `-3.14`, `38293`, `sqrt(2)`。\n" +
-    "  - 選択式はラベル文字 または 選択肢本文をそのまま値にする。\n\n" +
+    "  - 選択式はラベル文字 または 選択肢本文をそのまま値にする。\n" +
+    "  - チェックボックスが選択肢ごとに個別の回答欄として示される場合は、選択する欄を `1`、選択しない欄を `0` にする。\n\n" +
     "重要: 解答に必要な情報（データ、画像、図表、条件、選択肢など）が不足している場合は、推測や解答を一切しない。`[[番号]] = 値` 形式も出力せず、不足している情報だけを具体的にユーザーへ伝える。\n\n" +
     "=====\n\n";
 
@@ -270,9 +271,16 @@
         if (list.length) opts = OPTIONS_HEADER + "\n" + list.join("\n");
       }
 
-      const groupIds = Array.from(radioGroups.values()).map((g) => g.id);
+      const groups = Array.from(radioGroups.values());
+      const groupIds = groups.map((g) => g.id);
       if (groupIds.length) {
-        opts += `\n回答欄: ${groupIds.map((id) => `[[${id}]]`).join(", ")}`;
+        const allIndividualCheckboxes = groups.every(
+          (g) => g.type === "checkbox" && g.elements.length === 1
+        );
+        const answerFieldLabel = allIndividualCheckboxes
+          ? "チェックボックス回答欄（選択肢と同順、1 = 選択、0 = 非選択）"
+          : "回答欄";
+        opts += `\n${answerFieldLabel}: ${groupIds.map((id) => `[[${id}]]`).join(", ")}`;
       }
 
       out.push(title + (body ? `\n${body}` : "") + opts);
@@ -313,6 +321,13 @@
     return v;
   }
 
+  function parseCheckboxBoolean(value) {
+    const normalized = value.trim().toLowerCase();
+    if (["1", "true", "yes", "on"].includes(normalized)) return true;
+    if (["0", "false", "no", "off"].includes(normalized)) return false;
+    return null;
+  }
+
   function applyAnswer(id, rawValue) {
     let entry = answerMap.get(id);
     if (!entry && !id.includes(".")) entry = answerMap.get(`${id}.1`);
@@ -343,6 +358,23 @@
     }
 
     if (entry.role === "checkbox") {
+      if (entry.elements.length === 1) {
+        const checked = parseCheckboxBoolean(value);
+        if (checked !== null) {
+          entry.elements[0].checked = checked;
+          fireInputEvents(entry.elements[0]);
+          return { ok: true };
+        }
+
+        const match = matchOption(entry.options, value);
+        if (!match) {
+          return { ok: false, reason: `expected 1, 0, or a matching label for checkbox ${id}` };
+        }
+        match.el.checked = true;
+        fireInputEvents(match.el);
+        return { ok: true };
+      }
+
       const parts = value.split(/[,，、\/|]+/).map((s) => s.trim()).filter(Boolean);
       const targets = parts.length ? parts : [value];
       let any = false;
